@@ -91,7 +91,12 @@ def _write_header_row(ws):
 
 
 CURRENCY_FORMAT = '$#,##0'
-CURRENCY_COLUMNS = {"list_price", "hoa_fee"}
+CURRENCY_COLUMNS = {"list_price", "hoa_fee", "down_payment_est"}
+
+FILL_STRONG   = PatternFill("solid", fgColor="00B050")  # green
+FILL_POSSIBLE = PatternFill("solid", fgColor="FFC000")  # yellow
+FILL_REVIEW   = PatternFill("solid", fgColor="FF6600")  # orange
+FILL_SKIP     = PatternFill("solid", fgColor="FF0000")  # red
 
 
 def _write_data_rows(ws, properties: list[dict]):
@@ -123,6 +128,21 @@ def _write_data_rows(ws, properties: list[dict]):
                         cell.font = Font(color="FFFFFF", bold=True)
                     case "N/A - HOA missing":
                         cell.font = Font(color="888888", italic=True)
+
+            if field == "investor_flag":
+                match value:
+                    case "STRONG":
+                        cell.fill = FILL_STRONG
+                        cell.font = Font(color="FFFFFF", bold=True)
+                    case "POSSIBLE":
+                        cell.fill = FILL_POSSIBLE
+                        cell.font = Font(color="000000", bold=True)
+                    case "REVIEW":
+                        cell.fill = FILL_REVIEW
+                        cell.font = Font(color="FFFFFF", bold=True)
+                    case "SKIP":
+                        cell.fill = FILL_SKIP
+                        cell.font = Font(color="FFFFFF", bold=True)
 
 
 def _apply_column_widths(ws):

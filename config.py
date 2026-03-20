@@ -35,6 +35,11 @@ FIELDS = [
     "source",
     "fetched_at",
     "dscr_flag",
+    "down_payment_est",
+    "down_payment_feasible",
+    "target_price_range",
+    "boarder_strategy_viable",
+    "investor_flag",
 ]
 
 # Columns that represent hardcoded user inputs (styled blue in Excel)
