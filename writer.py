@@ -54,7 +54,9 @@ def _load_or_create_workbook() -> openpyxl.Workbook:
 def _get_or_create_sheet(wb: openpyxl.Workbook, name: str) -> openpyxl.worksheet.worksheet.Worksheet:
     if name in wb.sheetnames:
         ws = wb[name]
-        ws.delete_rows(1, ws.max_row)  # clear existing data, keep sheet
+        for merge in list(ws.merged_cells.ranges):
+            ws.unmerge_cells(str(merge))
+        ws.delete_rows(1, ws.max_row)
         return ws
     ws = wb.create_sheet(name)
     # Remove default empty sheet if this is a brand-new workbook

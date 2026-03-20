@@ -99,13 +99,20 @@ def main():
     written_path = write_to_excel(properties, geo, output_path)
 
     # 7. Summary
-    dscr_counts = Counter(p["dscr_flag"] for p in properties)
+    def _dscr_bucket(flag: str | None) -> str:
+        if flag in ("PASS", "MARGINAL", "FAIL"):
+            return flag
+        if flag and str(flag).startswith("N/A"):
+            return "N/A"
+        return "N/A"
+
+    buckets = Counter(_dscr_bucket(p["dscr_flag"]) for p in properties)
     print(f"\n{'='*50}")
     print(f"  Records written : {len(properties)}")
-    print(f"  DSCR PASS       : {dscr_counts.get('PASS', 0)}")
-    print(f"  DSCR MARGINAL   : {dscr_counts.get('MARGINAL', 0)}")
-    print(f"  DSCR FAIL       : {dscr_counts.get('FAIL', 0)}")
-    print(f"  DSCR N/A        : {dscr_counts.get('N/A', 0)}")
+    print(f"  DSCR PASS       : {buckets.get('PASS', 0)}")
+    print(f"  DSCR MARGINAL   : {buckets.get('MARGINAL', 0)}")
+    print(f"  DSCR FAIL       : {buckets.get('FAIL', 0)}")
+    print(f"  DSCR N/A        : {buckets.get('N/A', 0)}")
     print(f"  Output          : {written_path}")
     print(f"{'='*50}")
 
