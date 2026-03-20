@@ -28,6 +28,7 @@ FIELDS = [
     "rent_estimate_low",
     "rent_estimate_high",
     "hoa_fee",
+    "hoa_source",
     "days_on_market",
     "latitude",
     "longitude",

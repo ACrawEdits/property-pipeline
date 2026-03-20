@@ -1,6 +1,13 @@
 from datetime import datetime, timezone
 
 
+def _extract_hoa_fee(raw: dict) -> float | None:
+    hoa = raw.get("hoa")
+    if isinstance(hoa, dict):
+        return hoa.get("fee")
+    return raw.get("hoaFee")
+
+
 def normalize_property(raw: dict) -> dict:
     return {
         "address":           raw.get("formattedAddress") or raw.get("address"),
@@ -17,7 +24,8 @@ def normalize_property(raw: dict) -> dict:
         "rent_estimate":     raw.get("rentEstimate"),
         "rent_estimate_low": raw.get("rentEstimateLow"),
         "rent_estimate_high":raw.get("rentEstimateHigh"),
-        "hoa_fee":           raw.get("hoa", {}).get("fee") if isinstance(raw.get("hoa"), dict) else raw.get("hoaFee"),
+        "hoa_fee":           _extract_hoa_fee(raw),
+        "hoa_source":        "RentCast" if _extract_hoa_fee(raw) is not None else "Missing",
         "days_on_market":    raw.get("daysOnMarket"),
         "latitude":          raw.get("latitude"),
         "longitude":         raw.get("longitude"),
@@ -43,10 +51,12 @@ def dscr_flag(prop: dict) -> str:
     if not rent or not price or rent <= 0 or price <= 0:
         return "N/A"
 
-    monthly_debt = price * 0.006  # ~7.25% 30yr at 20% down
-    hoa = prop.get("hoa_fee") or 0
+    hoa_fee = prop.get("hoa_fee")
+    if hoa_fee is None or hoa_fee == 0:
+        return "N/A - HOA missing"
 
-    denominator = monthly_debt + hoa
+    monthly_debt = price * 0.006  # ~7.25% 30yr at 20% down
+    denominator = monthly_debt + hoa_fee
     if denominator <= 0:
         return "N/A"
 

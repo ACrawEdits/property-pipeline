@@ -80,6 +80,11 @@ def fetch_property_details(address: str) -> dict | None:
         return None
 
 
+def fetch_property_details_attom(address: str) -> dict | None:
+    """Placeholder for ATTOM property details lookup. Not yet implemented."""
+    return None
+
+
 def apply_county_filter(listings: list[dict], county_name: str) -> list[dict]:
     def _normalize(name: str) -> str:
         return name.lower().removesuffix(" county").strip()

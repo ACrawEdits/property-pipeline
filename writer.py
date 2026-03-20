@@ -88,11 +88,25 @@ def _write_header_row(ws):
     ws.row_dimensions[2].height = 16
 
 
+CURRENCY_FORMAT = '$#,##0'
+CURRENCY_COLUMNS = {"list_price", "hoa_fee"}
+
+
 def _write_data_rows(ws, properties: list[dict]):
     for row_idx, prop in enumerate(properties, start=3):
         for col_idx, field in enumerate(FIELDS, start=1):
             value = prop.get(field)
             cell = ws.cell(row=row_idx, column=col_idx, value=value)
+
+            if field in CURRENCY_COLUMNS:
+                cell.number_format = CURRENCY_FORMAT
+
+            if field == "hoa_source":
+                match value:
+                    case "Missing":
+                        cell.font = Font(color="888888", italic=True)
+                    case "ATTOM":
+                        cell.font = Font(color="7030A0", italic=True)  # purple = supplemental source
 
             if field == "dscr_flag":
                 match value:
@@ -105,6 +119,8 @@ def _write_data_rows(ws, properties: list[dict]):
                     case "FAIL":
                         cell.fill = FILL_FAIL
                         cell.font = Font(color="FFFFFF", bold=True)
+                    case "N/A - HOA missing":
+                        cell.font = Font(color="888888", italic=True)
 
 
 def _apply_column_widths(ws):
