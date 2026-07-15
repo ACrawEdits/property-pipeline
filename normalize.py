@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
 
-from config import (monthly_piti_factor, DSCR_INSURANCE_MONTHLY, DSCR_RENT_HAIRCUT,
-                    DSCR_PASS_THRESHOLD, DSCR_MARGINAL_THRESHOLD,
-                    DEFAULT_PROFILE, InvestorProfile)
+from profile import InvestorProfile, DEFAULT_PROFILE
 
 
 def _extract_hoa_fee(raw: dict) -> float | None:
@@ -50,7 +48,7 @@ def normalize_rental_estimate(raw: dict, prop: dict) -> dict:
     return updated
 
 
-def dscr_flag(prop: dict) -> str:
+def dscr_flag(prop: dict, profile: InvestorProfile = DEFAULT_PROFILE) -> str:
     rent = prop.get("rent_estimate")
     price = prop.get("list_price")
     if not rent or not price or rent <= 0 or price <= 0:
@@ -61,14 +59,14 @@ def dscr_flag(prop: dict) -> str:
     if hoa_fee is None:
         return "N/A - HOA missing"
     if hoa_fee == 0 and hoa_source != "ATTOM":
-        return "N/A - HOA unconfirmed $0"  # RentCast zero untrusted until ATTOM confirms
+        return "N/A - HOA unconfirmed $0"
 
-    pitia = price * monthly_piti_factor() + DSCR_INSURANCE_MONTHLY + hoa_fee
-    dscr = (rent * DSCR_RENT_HAIRCUT) / pitia
+    pitia = price * profile.monthly_piti_factor() + profile.dscr_insurance_monthly + hoa_fee
+    dscr = (rent * profile.dscr_rent_haircut) / pitia
 
-    if dscr >= DSCR_PASS_THRESHOLD:
+    if dscr >= profile.min_dscr:
         return "PASS"
-    if dscr >= DSCR_MARGINAL_THRESHOLD:
+    if dscr >= profile.marginal_dscr:
         return "MARGINAL"
     return "FAIL"
 
@@ -88,8 +86,8 @@ def investor_flag(prop: dict, profile: InvestorProfile = DEFAULT_PROFILE) -> dic
     else:
         target_price_range = "Out of range"
 
-    boarder_strategy_viable = (property_type in profile.boarder_viable_types
-                               and bedrooms >= profile.boarder_min_bedrooms)
+    boarder_strategy_viable = (property_type in profile.property_types
+                               and bedrooms >= profile.min_bedrooms)
 
     in_range = target_price_range == "In range"
     failures = sum([not down_payment_feasible, not in_range, not boarder_strategy_viable])
