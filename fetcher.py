@@ -97,11 +97,12 @@ def apply_county_filter(listings: list[dict], county_name: str) -> list[dict]:
 
     if not filtered:
         print(
-            f"[fetcher] WARNING: county filter '{county_name}' matched 0 of "
-            f"{len(listings)} listings — returning unfiltered results.",
+            f"[fetcher] ERROR: county filter '{county_name}' matched 0 of "
+            f"{len(listings)} listings. Returning NO results. "
+            f"Check county spelling or RentCast county field coverage.",
             file=sys.stderr,
         )
-        return listings
+        return []
 
     return filtered
 

@@ -1,5 +1,9 @@
 from datetime import datetime, timezone
 
+from config import (monthly_piti_factor, DSCR_INSURANCE_MONTHLY, DSCR_RENT_HAIRCUT,
+                    DSCR_PASS_THRESHOLD, DSCR_MARGINAL_THRESHOLD,
+                    DEFAULT_PROFILE, InvestorProfile)
+
 
 def _extract_hoa_fee(raw: dict) -> float | None:
     hoa = raw.get("hoa")
@@ -49,67 +53,60 @@ def normalize_rental_estimate(raw: dict, prop: dict) -> dict:
 def dscr_flag(prop: dict) -> str:
     rent = prop.get("rent_estimate")
     price = prop.get("list_price")
-
     if not rent or not price or rent <= 0 or price <= 0:
         return "N/A"
 
     hoa_fee = prop.get("hoa_fee")
-    if hoa_fee is None or hoa_fee == 0:
+    hoa_source = prop.get("hoa_source")
+    if hoa_fee is None:
         return "N/A - HOA missing"
+    if hoa_fee == 0 and hoa_source != "ATTOM":
+        return "N/A - HOA unconfirmed $0"  # RentCast zero untrusted until ATTOM confirms
 
-    monthly_debt = price * 0.006  # ~7.25% 30yr at 20% down
-    denominator = monthly_debt + hoa_fee
-    if denominator <= 0:
-        return "N/A"
+    pitia = price * monthly_piti_factor() + DSCR_INSURANCE_MONTHLY + hoa_fee
+    dscr = (rent * DSCR_RENT_HAIRCUT) / pitia
 
-    dscr = (rent * 0.75) / denominator
-
-    match True:
-        case _ if dscr >= 1.1:
-            return "PASS"
-        case _ if dscr >= 0.9:
-            return "MARGINAL"
-        case _:
-            return "FAIL"
+    if dscr >= DSCR_PASS_THRESHOLD:
+        return "PASS"
+    if dscr >= DSCR_MARGINAL_THRESHOLD:
+        return "MARGINAL"
+    return "FAIL"
 
 
-BOARDER_VIABLE_TYPES = {"single family", "condo", "townhouse"}
-
-
-def investor_flag(prop: dict) -> dict:
+def investor_flag(prop: dict, profile: InvestorProfile = DEFAULT_PROFILE) -> dict:
     list_price = prop.get("list_price") or 0
     bedrooms = prop.get("bedrooms") or 0
     property_type = (prop.get("property_type") or "").strip().lower()
 
-    down_payment_est = list_price * 0.05
-    down_payment_feasible = down_payment_est <= 50000
+    down_payment_est = list_price * profile.down_payment_pct
+    down_payment_feasible = down_payment_est <= profile.down_payment_ceiling
 
-    if list_price <= 250000:
+    if list_price <= profile.in_range_max_price:
         target_price_range = "In range"
-    elif list_price <= 400000:
+    elif list_price <= profile.stretch_max_price:
         target_price_range = "Above range"
     else:
         target_price_range = "Out of range"
 
-    boarder_strategy_viable = property_type in BOARDER_VIABLE_TYPES and bedrooms >= 2
+    boarder_strategy_viable = (property_type in profile.boarder_viable_types
+                               and bedrooms >= profile.boarder_min_bedrooms)
 
     in_range = target_price_range == "In range"
     failures = sum([not down_payment_feasible, not in_range, not boarder_strategy_viable])
 
-    match failures:
-        case 0:
-            flag = "STRONG"
-        case 1 if down_payment_feasible and boarder_strategy_viable:
-            flag = "POSSIBLE"  # only the price range condition failed
-        case 1:
-            flag = "REVIEW"
-        case _:
-            flag = "SKIP"
+    if failures == 0:
+        flag = "STRONG"
+    elif failures == 1 and down_payment_feasible and boarder_strategy_viable:
+        flag = "POSSIBLE"
+    elif failures == 1:
+        flag = "REVIEW"
+    else:
+        flag = "SKIP"
 
     return {
-        "down_payment_est":       down_payment_est,
-        "down_payment_feasible":  down_payment_feasible,
-        "target_price_range":     target_price_range,
+        "down_payment_est": down_payment_est,
+        "down_payment_feasible": down_payment_feasible,
+        "target_price_range": target_price_range,
         "boarder_strategy_viable": boarder_strategy_viable,
-        "investor_flag":          flag,
+        "investor_flag": flag,
     }

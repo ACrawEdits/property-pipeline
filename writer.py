@@ -126,7 +126,7 @@ def _write_data_rows(ws, properties: list[dict]):
                     case "FAIL":
                         cell.fill = FILL_FAIL
                         cell.font = Font(color="FFFFFF", bold=True)
-                    case "N/A - HOA missing":
+                    case str() if value.startswith("N/A"):
                         cell.font = Font(color="888888", italic=True)
 
             if field == "investor_flag":
