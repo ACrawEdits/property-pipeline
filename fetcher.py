@@ -25,7 +25,7 @@ def fetch_listings(geo_context: GeoContext, limit: int) -> list[dict]:
         params = {**geo_context.api_params, "limit": page_size, "offset": offset, "status": "Active"}
 
         try:
-            response = _get_with_backoff(f"{RENTCAST_BASE_URL}/listings/rental/long-term", params)
+            response = _get_with_backoff(f"{RENTCAST_BASE_URL}/listings/sale", params)
         except Exception as exc:
             print(f"[fetcher] listings request failed: {exc}", file=sys.stderr)
             break
